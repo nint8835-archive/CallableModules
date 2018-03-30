@@ -6,7 +6,9 @@ import CallableModules
 
 test = True
 
+
 def __call__(*args, **kwargs):
     return True
+
 
 CallableModules.patch()

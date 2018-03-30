@@ -26,6 +26,21 @@ class CallableModule(types.ModuleType):
         return getattr(sys.modules[self._original_module], self._method_name)(*args, **kwargs)
 
 
+def get_caller_module_name(depth=2):
+    """
+    Gets the name of the module that caused this method to be called
+    :param depth: The depth of this call
+    :return: The name of the module
+    """
+    # Get one level up
+    back = inspect.currentframe().f_back
+    # Go up levels until you reach the requested depth
+    for i in range(depth - 1):
+        back = back.f_back
+    # Return the name from the frame globals
+    return back.f_globals["__name__"]
+
+
 def patch(module_name=None, method_name="__call__"):
     """
     Patches a module to allow it to be callable
@@ -34,7 +49,7 @@ def patch(module_name=None, method_name="__call__"):
     """
     # If no module name is provided, use the name of the module that is calling this method
     if module_name is None:
-        module_name = inspect.currentframe().f_back.f_globals["__name__"]
+        module_name = get_caller_module_name()
 
     # Create a backup of the existing module
     original_module = sys.modules[module_name]
@@ -42,6 +57,21 @@ def patch(module_name=None, method_name="__call__"):
     sys.modules[module_name] = CallableModule(module_name, method_name)
     # Restore the original module to <module_name>_ORIGINAL
     sys.modules[module_name + "_ORIGINAL"] = original_module
+
+
+def unpatch(module_name=None):
+    """
+    Unpatches a module
+    :param module_name: The name of the module
+    """
+    # If no module name is provided, use the name of the module that is calling this method
+    if module_name is None:
+        module_name = get_caller_module_name()
+
+    # Replace the proxy module with the original module
+    sys.modules[module_name] = sys.modules[module_name + "_ORIGINAL"]
+    # Delete the backup copy
+    del sys.modules[module_name + "_ORIGINAL"]
 
 
 def _callable_patch(module_name=None, method_name="__call__"):
@@ -53,7 +83,7 @@ def _callable_patch(module_name=None, method_name="__call__"):
     # If no module name is provided, use the name of the module that is two levels back
     # This method -> proxy module -> caller module
     if module_name is None:
-        module_name = inspect.currentframe().f_back.f_back.f_globals["__name__"]
+        module_name = get_caller_module_name(depth=3)
     # Patch the module
     patch(module_name, method_name)
 
