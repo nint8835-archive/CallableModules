@@ -1,6 +1,7 @@
 import DefaultTestModule
 import CustomNameTestModule
 import UnpatchedTestModule
+import CallablePatchTestModule
 import pytest
 
 
@@ -23,3 +24,7 @@ def test_access_attribute_of_custom_module():
 def test_unpatched_module():
     with pytest.raises(TypeError):
         UnpatchedTestModule()
+
+
+def test_callable_patch():
+    assert CallablePatchTestModule()
